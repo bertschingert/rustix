@@ -140,5 +140,24 @@ fn libc_listxattr(path: &str) -> usize {
     let list = std::ffi::CString::new("").unwrap();
     let list = list.as_ptr() as *mut _;
 
-    (unsafe { libc::listxattr(path, list, 0) }) as usize
+    libc_listxattr_inner(path, list, 0) as usize
+}
+
+#[cfg(not(target_os = "macos"))]
+fn libc_listxattr_inner(
+    path: *const libc::c_char,
+    list: *mut libc::c_char,
+    length: libc::size_t,
+) -> libc::ssize_t {
+    unsafe { libc::listxattr(path, list, length) }
+}
+
+// Mac has an extra "options" argument to listxattr(), so it needs special handling:
+#[cfg(target_os = "macos")]
+fn libc_listxattr_inner(
+    path: *const libc::c_char,
+    list: *mut libc::c_char,
+    length: libc::size_t,
+) -> libc::ssize_t {
+    unsafe { libc::listxattr(path, list, length, 0) }
 }
